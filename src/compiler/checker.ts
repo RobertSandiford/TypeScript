@@ -17978,6 +17978,8 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                         : errorType;
                     break;
                 case SyntaxKind.ReadonlyKeyword:
+                case SyntaxKind.ClosedKeyword: // uncertain
+                case SyntaxKind.OpenKeyword: // uncertain
                     links.resolvedType = getTypeFromTypeNode(node.type);
                     break;
                 default:

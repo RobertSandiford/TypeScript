@@ -7161,6 +7161,10 @@ export function modifierToFlag(token: SyntaxKind): ModifierFlags {
             return ModifierFlags.Out;
         case SyntaxKind.Decorator:
             return ModifierFlags.Decorator;
+        case SyntaxKind.ClosedKeyword:
+            return ModifierFlags.Closed;
+        case SyntaxKind.OpenKeyword:
+            return ModifierFlags.Open;
     }
     return ModifierFlags.None;
 }

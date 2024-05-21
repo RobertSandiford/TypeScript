@@ -2684,8 +2684,8 @@ export function createNodeFactory(flags: NodeFactoryFlags, baseFactory: BaseNode
         return node;
     }
 
-    // @api
-    function createTypeOperatorNode(operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword, type: TypeNode): TypeOperatorNode {
+    // @api                         // Can I use TypeOperatorNode['operator'] instead of listing out the union?
+    function createTypeOperatorNode(operator: TypeOperatorNode['operator'], type: TypeNode): TypeOperatorNode {
         const node = createBaseNode<TypeOperatorNode>(SyntaxKind.TypeOperator);
         node.operator = operator;
         node.type = operator === SyntaxKind.ReadonlyKeyword ?

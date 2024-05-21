@@ -1577,6 +1577,8 @@ export function isModifierKind(token: SyntaxKind): token is Modifier["kind"] {
         case SyntaxKind.StaticKeyword:
         case SyntaxKind.OutKeyword:
         case SyntaxKind.OverrideKeyword:
+        case SyntaxKind.ClosedKeyword:
+        case SyntaxKind.OpenKeyword:
             return true;
     }
     return false;

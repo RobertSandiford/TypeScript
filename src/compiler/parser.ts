@@ -4731,7 +4731,8 @@ namespace Parser {
         return type;
     }
 
-    function parseTypeOperator(operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword) {
+    //  TypeOperatorNode['operator'] instead of listing out the union?
+    function parseTypeOperator(operator: TypeOperatorNode['operator']) {
         const pos = getNodePos();
         parseExpected(operator);
         return finishNode(factory.createTypeOperatorNode(operator, parseTypeOperatorOrHigher()), pos);
@@ -4766,6 +4767,8 @@ namespace Parser {
             case SyntaxKind.KeyOfKeyword:
             case SyntaxKind.UniqueKeyword:
             case SyntaxKind.ReadonlyKeyword:
+            case SyntaxKind.ClosedKeyword:
+            case SyntaxKind.OpenKeyword:
                 return parseTypeOperator(operator);
             case SyntaxKind.InferKeyword:
                 return parseInferType();
@@ -7414,6 +7417,8 @@ namespace Parser {
             case SyntaxKind.StaticKeyword:
             case SyntaxKind.ReadonlyKeyword:
             case SyntaxKind.GlobalKeyword:
+            case SyntaxKind.ClosedKeyword:
+            case SyntaxKind.OpenKeyword:
                 if (isStartOfDeclaration()) {
                     return parseDeclaration();
                 }

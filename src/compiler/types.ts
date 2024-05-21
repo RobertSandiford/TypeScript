@@ -222,7 +222,9 @@ export const enum SyntaxKind {
     GlobalKeyword,
     BigIntKeyword,
     OverrideKeyword,
-    OfKeyword, // LastKeyword and LastToken and LastContextualKeyword
+    OfKeyword,
+    ClosedKeyword,
+    OpenKeyword, // LastKeyword and LastToken and LastContextualKeyword
 
     // Parse tree nodes
 
@@ -630,6 +632,8 @@ export type KeywordSyntaxKind =
     | SyntaxKind.NumberKeyword
     | SyntaxKind.ObjectKeyword
     | SyntaxKind.OfKeyword
+    | SyntaxKind.ClosedKeyword
+    | SyntaxKind.OpenKeyword
     | SyntaxKind.PackageKeyword
     | SyntaxKind.PrivateKeyword
     | SyntaxKind.ProtectedKeyword
@@ -886,6 +890,10 @@ export const enum ModifierFlags {
 
     HasComputedJSDocModifiers = 1 << 28, // Indicates the computed modifier flags include modifiers from JSDoc.
     HasComputedFlags =   1 << 29, // Modifier flags have been computed
+
+    // Object type modifiers -- where should these go in this list?
+    Closed =             1 << 30, // Closed object modifier
+    Open =               1 << 31, // Open object modifier
 
     AccessibilityModifier = Public | Private | Protected,
     // Accessibility modifiers and 'readonly' can be attached to a parameter in a constructor to make it a property.
@@ -2301,11 +2309,12 @@ export interface InferTypeNode extends TypeNode {
 export interface ParenthesizedTypeNode extends TypeNode {
     readonly kind: SyntaxKind.ParenthesizedType;
     readonly type: TypeNode;
-}
+}   
 
 export interface TypeOperatorNode extends TypeNode {
     readonly kind: SyntaxKind.TypeOperator;
-    readonly operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword;
+    readonly operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword
+        | SyntaxKind.ClosedKeyword | SyntaxKind.OpenKeyword;
     readonly type: TypeNode;
 }
 
@@ -8679,7 +8688,8 @@ export interface NodeFactory {
     createParenthesizedType(type: TypeNode): ParenthesizedTypeNode;
     updateParenthesizedType(node: ParenthesizedTypeNode, type: TypeNode): ParenthesizedTypeNode;
     createThisTypeNode(): ThisTypeNode;
-    createTypeOperatorNode(operator: SyntaxKind.KeyOfKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.ReadonlyKeyword, type: TypeNode): TypeOperatorNode;
+    // Can I use TypeOperatorNode['operator'] instead of listing out the union?
+    createTypeOperatorNode(operator: TypeOperatorNode['operator'], type: TypeNode): TypeOperatorNode;
     updateTypeOperatorNode(node: TypeOperatorNode, type: TypeNode): TypeOperatorNode;
     createIndexedAccessTypeNode(objectType: TypeNode, indexType: TypeNode): IndexedAccessTypeNode;
     updateIndexedAccessTypeNode(node: IndexedAccessTypeNode, objectType: TypeNode, indexType: TypeNode): IndexedAccessTypeNode;
