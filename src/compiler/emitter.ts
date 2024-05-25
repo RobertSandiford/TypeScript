@@ -2419,8 +2419,13 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
         writeTokenText(node.operator, writeKeyword);
         writeSpace();
 
-        // this might have to be changed for closed and open TypeOperatorNodes
-        const parenthesizerRule = node.operator === SyntaxKind.ReadonlyKeyword ?
+        // unsure about this, but lets guess that when the operator is closed or open keyword,
+        // it should behave the same as readonly
+        const parenthesizerRule = (
+            node.operator === SyntaxKind.ReadonlyKeyword 
+            || node.operator === SyntaxKind.ClosedKeyword 
+            || node.operator === SyntaxKind.OpenKeyword
+        ) ?
             parenthesizer.parenthesizeOperandOfReadonlyTypeOperator :
             parenthesizer.parenthesizeOperandOfTypeOperator;
         emit(node.type, parenthesizerRule);

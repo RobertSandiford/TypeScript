@@ -50793,6 +50793,15 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 return grammarErrorOnFirstToken(node, Diagnostics.open_type_modifier_is_only_permitted_on_object_literal_types);
             }
         }
+            if (node.type.kind !== SyntaxKind.TypeLiteral) {
+                return grammarErrorOnFirstToken(node, Diagnostics.closed_type_modifier_is_only_permitted_on_object_literal_types);
+            }
+        }
+        else if (node.operator === SyntaxKind.OpenKeyword) {
+            if (node.type.kind !== SyntaxKind.TypeLiteral) {
+                return grammarErrorOnFirstToken(node, Diagnostics.open_type_modifier_is_only_permitted_on_object_literal_types);
+            }
+        }
     }
 
     function checkGrammarForInvalidDynamicName(node: DeclarationName, message: DiagnosticMessage) {
