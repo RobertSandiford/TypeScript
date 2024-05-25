@@ -1797,6 +1797,14 @@
         "category": "Error",
         "code": 1535
     },
+    "'closed' type modifier is only permitted on object literal types.": {
+        "category": "Error",
+        "code": 1536
+    },
+    "'open' type modifier is only permitted on object literal types.": {
+        "category": "Error",
+        "code": 1537
+    },
 
     "The types of '{0}' are incompatible between these types.": {
         "category": "Error",

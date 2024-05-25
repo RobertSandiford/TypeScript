@@ -681,7 +681,9 @@ export type ModifierSyntaxKind =
     | SyntaxKind.ReadonlyKeyword
     | SyntaxKind.OutKeyword
     | SyntaxKind.OverrideKeyword
-    | SyntaxKind.StaticKeyword;
+    | SyntaxKind.StaticKeyword
+    | SyntaxKind.ClosedKeyword
+    | SyntaxKind.OpenKeyword;
 
 export type KeywordTypeSyntaxKind =
     | SyntaxKind.AnyKeyword

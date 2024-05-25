@@ -2419,6 +2419,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
         writeTokenText(node.operator, writeKeyword);
         writeSpace();
 
+        // this might have to be changed for closed and open TypeOperatorNodes
         const parenthesizerRule = node.operator === SyntaxKind.ReadonlyKeyword ?
             parenthesizer.parenthesizeOperandOfReadonlyTypeOperator :
             parenthesizer.parenthesizeOperandOfTypeOperator;

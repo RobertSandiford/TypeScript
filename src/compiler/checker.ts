@@ -20217,6 +20217,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
     }
 
     function isTypeAssignableTo(source: Type, target: Type): boolean {
+        console.log('isTypeAssignableTo')
         return isTypeRelatedTo(source, target, assignableRelation);
     }
 
@@ -21683,6 +21684,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
          * * Ternary.False if they are not related.
          */
         function isRelatedTo(originalSource: Type, originalTarget: Type, recursionFlags: RecursionFlags = RecursionFlags.Both, reportErrors = false, headMessage?: DiagnosticMessage, intersectionState = IntersectionState.None): Ternary {
+            console.log('isRelatedTo')
             if (originalSource === originalTarget) return Ternary.True;
 
             // Before normalization: if `source` is type an object type, and `target` is primitive,
@@ -21744,7 +21746,63 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             ) return Ternary.True;
 
             if (source.flags & TypeFlags.StructuredOrInstantiable || target.flags & TypeFlags.StructuredOrInstantiable) {
-                const isPerformingExcessPropertyChecks = !(intersectionState & IntersectionState.Target) && (isObjectLiteralType(source) && getObjectFlags(source) & ObjectFlags.FreshLiteral);
+               
+                function decToBin(dec: number) {
+                    return (dec >>> 0).toString(2);
+                }
+                function bitFlags(flags: number, sep = ',') {
+                    const matches: number[] = []
+                    const binary = decToBin(flags)
+                    let pos = binary.length - 1
+                    for (const v of binary) {
+                        if (v === "1") matches.push(pos)
+                        pos--
+                    }
+                    if (matches.length === 0) return "none"
+                    return matches.reverse().join(sep)
+                }
+                console.log('isObjectLiteralType(source)', isObjectLiteralType(source))
+                console.log('getObjectFlags(source)', getObjectFlags(source), decToBin(getObjectFlags(source)))
+                //console.log('ObjectFlags.FreshLiteral', ObjectFlags.FreshLiteral, decToBin(ObjectFlags.FreshLiteral))
+                console.log('source is fresh literal?', (getObjectFlags(source) & ObjectFlags.FreshLiteral) > 0)
+                const targetNotIntersectionTarget
+                    = !(intersectionState & IntersectionState.Target)
+                
+                //console.log('source', source)
+                console.log('target', target)
+                
+                console.log('source.flags TypeFlags', bitFlags(source.flags)) // TypeFlags
+                // eslint-disable-next-line local/no-in-operator
+                if ('symbol' in source && typeof source.symbol === 'object' && 'flags' in source.symbol) {
+                    console.log('source.symbol.flags SymbolFlags', bitFlags(source.symbol.flags)) // SymbolFlags
+                }
+                // eslint-disable-next-line local/no-in-operator
+                if ('objectFlags' in source) {
+                    console.log('source.objectFlag ObjectFlags', bitFlags((source as ObjectType).objectFlags))
+                }
+
+                //console.log('target.flags', decToBin(target.flags)) // TypeFlags
+                console.log('target.flags TypeFlags', bitFlags(target.flags)) // TypeFlags
+                const targetIsObjectType = Boolean(target.flags & TypeFlags.Object)
+                //console.log('target.symbol.flags', decToBin(target.symbol.flags)) // SymbolFlags
+                // eslint-disable-next-line local/no-in-operator
+                if ('symbol' in target && typeof target.symbol === 'object' && 'flags' in target.symbol) {
+                    console.log('target.symbol.flags SymbolFlags', bitFlags(target.symbol.flags)) // SymbolFlags
+                }
+                // our object type seems to have SymbolFlags.TypeLiteral
+                //console.log('target.objectFlags', decToBin((target as ObjectType).objectFlags))
+                // eslint-disable-next-line local/no-in-operator
+                if ('objectFlags' in target) {
+                    console.log('target.objectFlag ObjectFlags', bitFlags((target as ObjectType).objectFlags))
+                }
+                // we seem to get ObjectFlags.Anonymous
+                
+                const isAssignmentToClosedObjectType = (source.flags & TypeFlags.Object) && (target.flags & TypeFlags.Object) 
+                // if (isAssignmentToClosedObjectType) {
+                //     // todo
+                // }
+
+                const isPerformingExcessPropertyChecks = targetNotIntersectionTarget && isObjectLiteralType(source) && (getObjectFlags(source) & ObjectFlags.FreshLiteral);
                 if (isPerformingExcessPropertyChecks) {
                     if (hasExcessProperties(source as FreshObjectLiteralType, target, reportErrors)) {
                         if (reportErrors) {
@@ -21904,6 +21962,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         }
 
         function hasExcessProperties(source: FreshObjectLiteralType, target: Type, reportErrors: boolean): boolean {
+            console.log('hasExcessProperties is running')
             if (!isExcessPropertyCheckTarget(target) || !noImplicitAny && getObjectFlags(target) & ObjectFlags.JSLiteral) {
                 return false; // Disable excess property checks on JS literals to simulate having an implicit "index signature" - but only outside of noImplicitAny
             }
@@ -50720,6 +50779,18 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         else if (node.operator === SyntaxKind.ReadonlyKeyword) {
             if (node.type.kind !== SyntaxKind.ArrayType && node.type.kind !== SyntaxKind.TupleType) {
                 return grammarErrorOnFirstToken(node, Diagnostics.readonly_type_modifier_is_only_permitted_on_array_and_tuple_literal_types, tokenToString(SyntaxKind.SymbolKeyword));
+            }
+        }
+        else if (node.operator === SyntaxKind.ClosedKeyword) {
+            // why is the object literal type a TypeLiteral not an ObjectLiteral syntax kind? is ObjectLiteral the JS object?
+            if (node.type.kind !== SyntaxKind.TypeLiteral) {
+                return grammarErrorOnFirstToken(node, Diagnostics.closed_type_modifier_is_only_permitted_on_object_literal_types);
+            }
+        }
+        else if (node.operator === SyntaxKind.OpenKeyword) {
+            // why is the object literal type a TypeLiteral not an ObjectLiteral syntax kind? is ObjectLiteral the JS object?
+            if (node.type.kind !== SyntaxKind.TypeLiteral) {
+                return grammarErrorOnFirstToken(node, Diagnostics.open_type_modifier_is_only_permitted_on_object_literal_types);
             }
         }
     }
