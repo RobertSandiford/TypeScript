@@ -50782,17 +50782,6 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
         }
         else if (node.operator === SyntaxKind.ClosedKeyword) {
-            // why is the object literal type a TypeLiteral not an ObjectLiteral syntax kind? is ObjectLiteral the JS object?
-            if (node.type.kind !== SyntaxKind.TypeLiteral) {
-                return grammarErrorOnFirstToken(node, Diagnostics.closed_type_modifier_is_only_permitted_on_object_literal_types);
-            }
-        }
-        else if (node.operator === SyntaxKind.OpenKeyword) {
-            // why is the object literal type a TypeLiteral not an ObjectLiteral syntax kind? is ObjectLiteral the JS object?
-            if (node.type.kind !== SyntaxKind.TypeLiteral) {
-                return grammarErrorOnFirstToken(node, Diagnostics.open_type_modifier_is_only_permitted_on_object_literal_types);
-            }
-        }
             if (node.type.kind !== SyntaxKind.TypeLiteral) {
                 return grammarErrorOnFirstToken(node, Diagnostics.closed_type_modifier_is_only_permitted_on_object_literal_types);
             }
