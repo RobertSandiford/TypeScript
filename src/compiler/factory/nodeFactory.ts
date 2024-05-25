@@ -1566,6 +1566,8 @@ export function createNodeFactory(flags: NodeFactoryFlags, baseFactory: BaseNode
         if (flags & ModifierFlags.Async) result.push(createModifier(SyntaxKind.AsyncKeyword));
         if (flags & ModifierFlags.In) result.push(createModifier(SyntaxKind.InKeyword));
         if (flags & ModifierFlags.Out) result.push(createModifier(SyntaxKind.OutKeyword));
+        if (flags & ModifierFlags.Closed) result.push(createModifier(SyntaxKind.ClosedKeyword));
+        if (flags & ModifierFlags.Open) result.push(createModifier(SyntaxKind.OpenKeyword));
         return result.length ? result : undefined;
     }
 

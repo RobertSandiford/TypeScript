@@ -681,7 +681,9 @@ export type ModifierSyntaxKind =
     | SyntaxKind.ReadonlyKeyword
     | SyntaxKind.OutKeyword
     | SyntaxKind.OverrideKeyword
-    | SyntaxKind.StaticKeyword;
+    | SyntaxKind.StaticKeyword
+    | SyntaxKind.ClosedKeyword
+    | SyntaxKind.OpenKeyword;
 
 export type KeywordTypeSyntaxKind =
     | SyntaxKind.AnyKeyword
@@ -1637,6 +1639,8 @@ export type ReadonlyKeyword = ModifierToken<SyntaxKind.ReadonlyKeyword>;
 export type OutKeyword = ModifierToken<SyntaxKind.OutKeyword>;
 export type OverrideKeyword = ModifierToken<SyntaxKind.OverrideKeyword>;
 export type StaticKeyword = ModifierToken<SyntaxKind.StaticKeyword>;
+export type ClosedKeyword = ModifierToken<SyntaxKind.ClosedKeyword>;
+export type OpenKeyword = ModifierToken<SyntaxKind.OpenKeyword>;
 
 export type Modifier =
     | AbstractKeyword
@@ -1653,7 +1657,9 @@ export type Modifier =
     | OutKeyword
     | OverrideKeyword
     | ReadonlyKeyword
-    | StaticKeyword;
+    | StaticKeyword
+    | ClosedKeyword
+    | OpenKeyword;
 
 export type ModifierLike = Modifier | Decorator;
 
