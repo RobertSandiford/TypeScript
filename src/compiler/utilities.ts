@@ -2286,6 +2286,7 @@ export function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpa
         case SyntaxKind.PropertyDeclaration:
         case SyntaxKind.PropertySignature:
         case SyntaxKind.NamespaceImport:
+            console.log('set errorNode 18')
             errorNode = (node as NamedDeclaration).name;
             break;
         case SyntaxKind.ArrowFunction:
