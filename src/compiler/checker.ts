@@ -1108,7 +1108,7 @@ import {
 } from "./_namespaces/ts.js";
 import * as moduleSpecifiers from "./_namespaces/ts.moduleSpecifiers.js";
 import * as performance from "./_namespaces/ts.performance.js";
-import { showStack } from "./devHelpers.js";
+import { showFlags, showStack } from "./devHelpers.js";
 
 const ambientModuleSymbolRegex = /^".+"$/;
 const anon = "(anonymous)" as __String & string;
@@ -20326,7 +20326,16 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         errorOutputContainer: { errors?: Diagnostic[]; skipLogging?: boolean; } | undefined,
     ): boolean {
         console.log('checkTypeRelatedToAndOptionallyElaborate', 'hasErrorNode', !!errorNode);
-        console.log('is the type related?', isTypeRelatedTo(source, target, relation))
+        console.log(
+            'is the type related?',
+            isTypeRelatedTo(source, target, relation),
+            source.flags,
+            // @ts-expect-error
+            showFlags(source.flags, TypeFlags),
+            target.flags,
+            // @ts-expect-error
+            showFlags(target.flags, TypeFlags),
+        )
         if (isTypeRelatedTo(source, target, relation)) return true;
         if (!errorNode || !elaborateError(expr, source, target, relation, headMessage, containingMessageChain, errorOutputContainer)) {
             return checkTypeRelatedTo(source, target, relation, errorNode, headMessage, containingMessageChain, errorOutputContainer);
@@ -20347,6 +20356,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         containingMessageChain: (() => DiagnosticMessageChain | undefined) | undefined,
         errorOutputContainer: { errors?: Diagnostic[]; skipLogging?: boolean; } | undefined,
     ): boolean {
+        console.log('elaborateError')
         if (!node || isOrHasGenericConditional(target)) return false;
         if (
             !checkTypeRelatedTo(source, target, relation, /*errorNode*/ undefined)
@@ -21262,25 +21272,30 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             target = (target as FreshableType).regularType;
         }
         if (source === target) {
+            console.log('equal')
             return true;
         }
         if (relation !== identityRelation) {
             if (relation === comparableRelation && !(target.flags & TypeFlags.Never) && isSimpleTypeRelatedTo(target, source, relation) || isSimpleTypeRelatedTo(source, target, relation)) {
+                console.log('something to do with relation')
                 return true;
             }
         }
         else if (!((source.flags | target.flags) & (TypeFlags.UnionOrIntersection | TypeFlags.IndexedAccess | TypeFlags.Conditional | TypeFlags.Substitution))) {
             // We have excluded types that may simplify to other forms, so types must have identical flags
             if (source.flags !== target.flags) return false;
+            if (source.flags & TypeFlags.Singleton) console.log('source is singleton')  
             if (source.flags & TypeFlags.Singleton) return true;
         }
         if (source.flags & TypeFlags.Object && target.flags & TypeFlags.Object) {
             const related = relation.get(getRelationKey(source, target, IntersectionState.None, relation, /*ignoreConstraints*/ false));
             if (related !== undefined) {
+                console.log('related succeeded')
                 return !!(related & RelationComparisonResult.Succeeded);
             }
         }
         if (source.flags & TypeFlags.StructuredOrInstantiable || target.flags & TypeFlags.StructuredOrInstantiable) {
+            console.log('checkTypeRelatedTo')
             return checkTypeRelatedTo(source, target, relation, /*errorNode*/ undefined);
         }
         return false;
