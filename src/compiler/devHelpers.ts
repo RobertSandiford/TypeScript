@@ -5,7 +5,7 @@ export function decToBin(dec: number): string {
     return dec.toString(2);
 }
 
-export function showFlags(flags: number, enu: Record<string, string>): string {
+export function bitFlags(flags: number, enu: Record<string, string>): string {
     const flagsBinary = decToBin(flags)
     //console.log(flagsBinary)
     let result = ""
@@ -15,7 +15,7 @@ export function showFlags(flags: number, enu: Record<string, string>): string {
         //console.log(pos, flagsBinary[pos])
         if ((flagsBinary[pos]) === "1") {
             const shift = start - pos
-            console.log('bit at ', shift)
+            //console.log('bit at ', shift)
             if (result.length > 0) result += ', '
             result += enu[1 << shift]
         }
@@ -36,5 +36,5 @@ export function showStack(message: string = "") {
         }
     }
 }
-// export const specialWords = ['xx__closed', 'xx__open', 'readonly', 'XX__Readonly']
+// export const specialWords = ['closed', 'open', 'readonly', 'XX__Readonly']
 // export const specialSyntaxKinds = [SyntaxKind.ClosedKeyword, SyntaxKind.OpenKeyword, SyntaxKind.ReadonlyKeyword]

@@ -1063,6 +1063,8 @@ function withContext<T>(
     }
 
     function typeToTypeNode(type: Type, enclosingDeclaration: Node, flags = NodeBuilderFlags.None) {
+        // @ts-expect-error
+        console.log('typeToTypeNode 2')
         let isTruncated = false;
         const result = typeToAutoImportableTypeNode(typeChecker, importAdder, type, enclosingDeclaration, scriptTarget, declarationEmitNodeBuilderFlags | flags, {
             moduleResolverHost: program,

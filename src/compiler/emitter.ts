@@ -1272,6 +1272,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     function writeNode(hint: EmitHint, node: TypeNode, sourceFile: undefined, output: EmitTextWriter): void;
     function writeNode(hint: EmitHint, node: Node, sourceFile: SourceFile, output: EmitTextWriter): void;
     function writeNode(hint: EmitHint, node: Node, sourceFile: SourceFile | undefined, output: EmitTextWriter) {
+        console.log('writeNode')
         const previousWriter = writer;
         setWriter(output, /*_sourceMapGenerator*/ undefined);
         print(hint, node, sourceFile);
@@ -1327,6 +1328,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function print(hint: EmitHint, node: Node, sourceFile: SourceFile | undefined) {
+        console.log('print')
         if (sourceFile) {
             setSourceFile(sourceFile);
         }
@@ -1381,6 +1383,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     function emit<T extends Node>(node: T, parenthesizerRule?: (node: T) => T): void;
     function emit<T extends Node>(node: T | undefined, parenthesizerRule?: (node: T) => T): void;
     function emit<T extends Node>(node: T | undefined, parenthesizerRule?: (node: T) => T) {
+        console.log('emit')
         if (node === undefined) return;
         pipelineEmit(EmitHint.Unspecified, node, parenthesizerRule);
     }
@@ -1404,6 +1407,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function beforeEmitNode(node: Node) {
+        console.log('beforeEmitNode')
         if (preserveSourceNewlines && (getInternalEmitFlags(node) & InternalEmitFlags.IgnoreSourceNewlines)) {
             preserveSourceNewlines = false;
         }
@@ -1414,6 +1418,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function pipelineEmit<T extends Node>(emitHint: EmitHint, node: T, parenthesizerRule?: (node: T) => T) {
+        console.log('pipelineEmit')
         currentParenthesizerRule = parenthesizerRule;
         const pipelinePhase = getPipelinePhase(PipelinePhase.Notification, emitHint, node);
         pipelinePhase(emitHint, node);
@@ -1431,6 +1436,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function getPipelinePhase(phase: PipelinePhase, emitHint: EmitHint, node: Node) {
+        console.log('getPipelinePhase')
         switch (phase) {
             case PipelinePhase.Notification:
                 if (onEmitNode !== noEmitNotification && (!isEmitNotificationEnabled || isEmitNotificationEnabled(node))) {
@@ -1442,20 +1448,24 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
                     if (currentParenthesizerRule) {
                         lastSubstitution = currentParenthesizerRule(lastSubstitution);
                     }
+                    console.log('pipelineEmitWithSubstitution')
                     return pipelineEmitWithSubstitution;
                 }
                 // falls through
             case PipelinePhase.Comments:
                 if (shouldEmitComments(node)) {
+                    console.log('pipelineEmitWithComments')
                     return pipelineEmitWithComments;
                 }
                 // falls through
             case PipelinePhase.SourceMaps:
                 if (shouldEmitSourceMaps(node)) {
+                    console.log('pipelineEmitWithSourceMaps')
                     return pipelineEmitWithSourceMaps;
                 }
                 // falls through
             case PipelinePhase.Emit:
+                console.log('r pipelineEmitWithHint')
                 return pipelineEmitWithHint;
             default:
                 return Debug.assertNever(phase);
@@ -1472,6 +1482,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function pipelineEmitWithHint(hint: EmitHint, node: Node): void {
+        console.log('pipelineEmitWithHint')
         onBeforeEmitNode?.(node);
         if (preserveSourceNewlines) {
             const savedPreserveSourceNewlines = preserveSourceNewlines;
@@ -1488,12 +1499,15 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function pipelineEmitWithHintWorker(hint: EmitHint, node: Node, allowSnippets = true): void {
+        console.log('pipelineEmitWithHintWorker')
+        console.log('hint', hint)
         if (allowSnippets) {
             const snippet = getSnippetElement(node);
             if (snippet) {
                 return emitSnippetNode(hint, node, snippet);
             }
         }
+        console.log('pipelineEmitWithHintWorker 1')
         if (hint === EmitHint.SourceFile) return emitSourceFile(cast(node, isSourceFile));
         if (hint === EmitHint.IdentifierName) return emitIdentifier(cast(node, isIdentifier));
         if (hint === EmitHint.JsxAttributeValue) return emitLiteral(cast(node, isStringLiteral), /*jsxAttributeEscape*/ true);
@@ -1503,12 +1517,14 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
             Debug.assertNode(node, isEmptyStatement);
             return emitEmptyStatement(/*isEmbeddedStatement*/ true);
         }
+        console.log('pipelineEmitWithHintWorker 2')
         if (hint === EmitHint.Unspecified) {
             switch (node.kind) {
                 // Pseudo-literals
                 case SyntaxKind.TemplateHead:
                 case SyntaxKind.TemplateMiddle:
                 case SyntaxKind.TemplateTail:
+                    console.log('emitLiteral')
                     return emitLiteral(node as LiteralExpression, /*jsxAttributeEscape*/ false);
 
                 // Identifiers
@@ -1528,6 +1544,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
 
                 // Signature elements
                 case SyntaxKind.TypeParameter:
+                    console.log('emitTypeParameter')
                     return emitTypeParameter(node as TypeParameterDeclaration);
                 case SyntaxKind.Parameter:
                     return emitParameter(node as ParameterDeclaration);
@@ -1569,10 +1586,13 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
                 case SyntaxKind.TypeQuery:
                     return emitTypeQuery(node as TypeQueryNode);
                 case SyntaxKind.TypeLiteral:
+                    console.log('call emitTypeLiteral')
                     return emitTypeLiteral(node as TypeLiteralNode);
                 case SyntaxKind.ArrayType:
+                    console.log('call emitArrayType')
                     return emitArrayType(node as ArrayTypeNode);
                 case SyntaxKind.TupleType:
+                    console.log('call emitTupleType')
                     return emitTupleType(node as TupleTypeNode);
                 case SyntaxKind.OptionalType:
                     return emitOptionalType(node as OptionalTypeNode);
@@ -1592,6 +1612,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
                 case SyntaxKind.ThisType:
                     return emitThisType();
                 case SyntaxKind.TypeOperator:
+                    console.log('&&& all emitTypeOperator')
                     return emitTypeOperator(node as TypeOperatorNode);
                 case SyntaxKind.IndexedAccessType:
                     return emitIndexedAccessType(node as IndexedAccessTypeNode);
@@ -1852,6 +1873,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
                 }
             }
         }
+        console.log('pipelineEmitWithHintWorker 3')
         if (hint === EmitHint.Expression) {
             switch (node.kind) {
                 // Literals
@@ -1957,7 +1979,10 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
                     return Debug.fail("SyntheticReferenceExpression should not be printed");
             }
         }
+        console.log('pipelineEmitWithHintWorker 4')
+        console.log('isKeyword(node.kind)', isKeyword(node.kind))
         if (isKeyword(node.kind)) return writeTokenNode(node, writeKeyword);
+        console.log('isTokenKind(node.kind)', isTokenKind(node.kind))
         if (isTokenKind(node.kind)) return writeTokenNode(node, writePunctuation);
         Debug.fail(`Unhandled SyntaxKind: ${Debug.formatSyntaxKind(node.kind)}.`);
     }
@@ -2335,6 +2360,11 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
         pushNameGenerationScope(node);
         forEach(node.members, generateMemberNames);
 
+        console.log('emitTypeLiteral')
+        console.log('node', node)
+        console.log('parent', node.parent)
+        console.log('symbol', node.symbol)
+
         writePunctuation("{");
         const flags = getEmitFlags(node) & EmitFlags.SingleLine ? ListFormat.SingleLineTypeLiteralMembers : ListFormat.MultiLineTypeLiteralMembers;
         emitList(node, node.members, flags | ListFormat.NoSpaceIfEmpty);
@@ -2416,6 +2446,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function emitTypeOperator(node: TypeOperatorNode) {
+        console.log('emitTypeOperator')
         writeTokenText(node.operator, writeKeyword);
         writeSpace();
 
@@ -2449,6 +2480,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
             increaseIndent();
         }
         if (node.readonlyToken) {
+            console.log('has readonlyToken')
             emit(node.readonlyToken);
             if (node.readonlyToken.kind !== SyntaxKind.ReadonlyKeyword) {
                 writeKeyword("readonly");
@@ -3120,6 +3152,7 @@ export function createPrinter(printerOptions: PrinterOptions = {}, handlers: Pri
     }
 
     function emitTokenWithComment(token: SyntaxKind, pos: number, writer: (s: string) => void, contextNode: Node, indentLeading?: boolean) {
+        console.log('emitTokenWithComment')
         const node = getParseTreeNode(contextNode);
         const isSimilarNode = node && node.kind === contextNode.kind;
         const startPos = pos;

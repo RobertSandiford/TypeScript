@@ -402,6 +402,7 @@ export function createTextSpan(start: number, length: number): TextSpan {
 }
 
 export function createTextSpanFromBounds(start: number, end: number) {
+    console.log('createTextSpanFromBounds')
     return createTextSpan(start, end - start);
 }
 

@@ -1105,10 +1105,11 @@ import {
     WideningContext,
     WithStatement,
     YieldExpression,
+    containsObjectRestOrSpread,
 } from "./_namespaces/ts.js";
 import * as moduleSpecifiers from "./_namespaces/ts.moduleSpecifiers.js";
 import * as performance from "./_namespaces/ts.performance.js";
-import { showFlags, showStack } from "./devHelpers.js";
+import { bitFlags, decToBin, showStack } from "./devHelpers.js";
 
 const ambientModuleSymbolRegex = /^".+"$/;
 const anon = "(anonymous)" as __String & string;
@@ -5928,6 +5929,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
     }
 
     function typeToString(type: Type, enclosingDeclaration?: Node, flags: TypeFormatFlags = TypeFormatFlags.AllowUniqueESSymbolType | TypeFormatFlags.UseAliasDefinedOutsideCurrentScope, writer: EmitTextWriter = createTextWriter("")): string {
+        console.log('typeToString')
         const noTruncation = compilerOptions.noErrorTruncation || flags & TypeFormatFlags.NoTruncation;
         const typeNode = nodeBuilder.typeToTypeNode(type, enclosingDeclaration, toNodeBuilderFlags(flags) | NodeBuilderFlags.IgnoreErrors | (noTruncation ? NodeBuilderFlags.NoTruncation : 0));
         if (typeNode === undefined) return Debug.fail("should always get typenode");
@@ -5946,11 +5948,21 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
     }
 
     function getTypeNamesForErrorDisplay(left: Type, right: Type): [string, string] {
+        console.log('getTypeNamesForErrorDisplay')
+        const leftCs =  symbolValueDeclarationIsContextSensitive(left.symbol)
+        console.log('left cs', leftCs)
         let leftStr = symbolValueDeclarationIsContextSensitive(left.symbol) ? typeToString(left, left.symbol.valueDeclaration) : typeToString(left);
+        const rightCs = symbolValueDeclarationIsContextSensitive(right.symbol)
+        console.log('right cs', rightCs)
         let rightStr = symbolValueDeclarationIsContextSensitive(right.symbol) ? typeToString(right, right.symbol.valueDeclaration) : typeToString(right);
+        console.log('leftStr', leftStr)
+        console.log('rightStr', rightStr)
         if (leftStr === rightStr) {
+            console.log('leftStr equals rightStr')
             leftStr = getTypeNameForErrorDisplay(left);
             rightStr = getTypeNameForErrorDisplay(right);
+            console.log('new leftStr', leftStr)
+            console.log('new rightStr', rightStr)
         }
         return [leftStr, rightStr];
     }
@@ -5960,6 +5972,10 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
     }
 
     function symbolValueDeclarationIsContextSensitive(symbol: Symbol): boolean {
+        console.log('has symbol', !!symbol)
+        console.log('is symbol.valueDeclaration', symbol && !!symbol.valueDeclaration)
+        console.log('isExpression(symbol.valueDeclaration', symbol && !!symbol.valueDeclaration && isExpression(symbol.valueDeclaration))
+        console.log('!isContextSensitive(symbol.valueDeclaration)', symbol && !!symbol.valueDeclaration && isExpression(symbol.valueDeclaration) && !isContextSensitive(symbol.valueDeclaration))
         return symbol && !!symbol.valueDeclaration && isExpression(symbol.valueDeclaration) && !isContextSensitive(symbol.valueDeclaration);
     }
 
@@ -5973,7 +5989,10 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
 
     function createNodeBuilder() {
         return {
-            typeToTypeNode: (type: Type, enclosingDeclaration?: Node, flags?: NodeBuilderFlags, tracker?: SymbolTracker) => withContext(enclosingDeclaration, flags, tracker, context => typeToTypeNodeHelper(type, context)),
+            typeToTypeNode: (type: Type, enclosingDeclaration?: Node, flags?: NodeBuilderFlags, tracker?: SymbolTracker) => {
+                console.log('typeToTypeNode')
+                return withContext(enclosingDeclaration, flags, tracker, context => typeToTypeNodeHelper(type, context))
+            },
             typePredicateToTypePredicateNode: (typePredicate: TypePredicate, enclosingDeclaration?: Node, flags?: NodeBuilderFlags, tracker?: SymbolTracker) => withContext(enclosingDeclaration, flags, tracker, context => typePredicateToTypePredicateNodeHelper(typePredicate, context)),
             expressionOrTypeToTypeNode: (expr: Expression | JsxAttributeValue | undefined, type: Type, addUndefined?: boolean, enclosingDeclaration?: Node, flags?: NodeBuilderFlags, tracker?: SymbolTracker) => withContext(enclosingDeclaration, flags, tracker, context => expressionOrTypeToTypeNode(context, expr, type, addUndefined)),
             serializeTypeForDeclaration: (declaration: Declaration, type: Type, symbol: Symbol, enclosingDeclaration?: Node, flags?: NodeBuilderFlags, tracker?: SymbolTracker) => withContext(enclosingDeclaration, flags, tracker, context => serializeTypeForDeclaration(context, declaration, type, symbol)),
@@ -6104,6 +6123,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         }
 
         function withContext<T>(enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker: SymbolTracker | undefined, cb: (context: NodeBuilderContext) => T): T | undefined {
+            console.log('withContext')
             const moduleResolverHost = tracker?.trackSymbol ? tracker.moduleResolverHost :
                 flags! & NodeBuilderFlags.DoNotIncludeSymbolChain ? createBasicNodeBuilderModuleSpecifierResolutionHost(host) :
                 undefined;
@@ -6146,6 +6166,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         }
 
         function typeToTypeNodeHelper(type: Type, context: NodeBuilderContext): TypeNode {
+            console.log('-typeToTypeNodeHelper')
             const savedFlags = context.flags;
             const typeNode = typeToTypeNodeWorker(type, context);
             context.flags = savedFlags;
@@ -6153,6 +6174,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         }
 
         function typeToTypeNodeWorker(type: Type, context: NodeBuilderContext): TypeNode {
+            console.log('-typeToTypeNodeWorker')
             if (cancellationToken && cancellationToken.throwIfCancellationRequested) {
                 cancellationToken.throwIfCancellationRequested();
             }
@@ -6165,6 +6187,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     return undefined!; // TODO: GH#18217
                 }
                 context.approximateLength += 3;
+                console.log('-no type')
                 return factory.createKeywordTypeNode(SyntaxKind.AnyKeyword);
             }
 
@@ -6172,17 +6195,22 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 type = getReducedType(type);
             }
 
+            console.log('-typeToTypeNodeWorker 1')
             if (type.flags & TypeFlags.Any) {
                 if (type.aliasSymbol) {
+                    console.log('-aliasSymbol')
                     return factory.createTypeReferenceNode(symbolToEntityNameNode(type.aliasSymbol), mapToTypeNodes(type.aliasTypeArguments, context));
                 }
                 if (type === unresolvedType) {
+                    console.log('-unresolvedType')
                     return addSyntheticLeadingComment(factory.createKeywordTypeNode(SyntaxKind.AnyKeyword), SyntaxKind.MultiLineCommentTrivia, "unresolved");
                 }
                 context.approximateLength += 3;
+                console.log('-any')
                 return factory.createKeywordTypeNode(type === intrinsicMarkerType ? SyntaxKind.IntrinsicKeyword : SyntaxKind.AnyKeyword);
             }
             if (type.flags & TypeFlags.Unknown) {
+                console.log('-unknown')
                 return factory.createKeywordTypeNode(SyntaxKind.UnknownKeyword);
             }
             if (type.flags & TypeFlags.String) {
@@ -6201,6 +6229,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 context.approximateLength += 7;
                 return factory.createKeywordTypeNode(SyntaxKind.BooleanKeyword);
             }
+            console.log('-typeToTypeNodeWorker 2')
             if (type.flags & TypeFlags.EnumLike) {
                 if (type.symbol.flags & SymbolFlags.EnumMember) {
                     const parentSymbol = getParentOfSymbol(type.symbol)!;
@@ -6228,24 +6257,30 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 }
                 return symbolToTypeNode(type.symbol, context, SymbolFlags.Type);
             }
+            console.log('-typeToTypeNodeWorker 3')
             if (type.flags & TypeFlags.StringLiteral) {
+                console.log('-StringLiteral')
                 context.approximateLength += (type as StringLiteralType).value.length + 2;
                 return factory.createLiteralTypeNode(setEmitFlags(factory.createStringLiteral((type as StringLiteralType).value, !!(context.flags & NodeBuilderFlags.UseSingleQuotesForStringLiteralType)), EmitFlags.NoAsciiEscaping));
             }
             if (type.flags & TypeFlags.NumberLiteral) {
+                console.log('-NumberLiteral')
                 const value = (type as NumberLiteralType).value;
                 context.approximateLength += ("" + value).length;
                 return factory.createLiteralTypeNode(value < 0 ? factory.createPrefixUnaryExpression(SyntaxKind.MinusToken, factory.createNumericLiteral(-value)) : factory.createNumericLiteral(value));
             }
             if (type.flags & TypeFlags.BigIntLiteral) {
+                console.log('-BigIntLiteral')
                 context.approximateLength += (pseudoBigIntToString((type as BigIntLiteralType).value).length) + 1;
                 return factory.createLiteralTypeNode(factory.createBigIntLiteral((type as BigIntLiteralType).value));
             }
             if (type.flags & TypeFlags.BooleanLiteral) {
+                console.log('-BooleanLiteral')
                 context.approximateLength += (type as IntrinsicType).intrinsicName.length;
                 return factory.createLiteralTypeNode((type as IntrinsicType).intrinsicName === "true" ? factory.createTrue() : factory.createFalse());
             }
             if (type.flags & TypeFlags.UniqueESSymbol) {
+                console.log('-UniqueESSymbol')
                 if (!(context.flags & NodeBuilderFlags.AllowUniqueESSymbolType)) {
                     if (isValueSymbolAccessible(type.symbol, context.enclosingDeclaration)) {
                         context.approximateLength += 6;
@@ -6259,29 +6294,36 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 return factory.createTypeOperatorNode(SyntaxKind.UniqueKeyword, factory.createKeywordTypeNode(SyntaxKind.SymbolKeyword));
             }
             if (type.flags & TypeFlags.Void) {
+                console.log('-Void')
                 context.approximateLength += 4;
                 return factory.createKeywordTypeNode(SyntaxKind.VoidKeyword);
             }
             if (type.flags & TypeFlags.Undefined) {
+                console.log('-Undefined')
                 context.approximateLength += 9;
                 return factory.createKeywordTypeNode(SyntaxKind.UndefinedKeyword);
             }
             if (type.flags & TypeFlags.Null) {
+                console.log('-Null')
                 context.approximateLength += 4;
                 return factory.createLiteralTypeNode(factory.createNull());
             }
             if (type.flags & TypeFlags.Never) {
+                console.log('-Never')
                 context.approximateLength += 5;
                 return factory.createKeywordTypeNode(SyntaxKind.NeverKeyword);
             }
             if (type.flags & TypeFlags.ESSymbol) {
+                console.log('-ESSymbol')
                 context.approximateLength += 6;
                 return factory.createKeywordTypeNode(SyntaxKind.SymbolKeyword);
             }
             if (type.flags & TypeFlags.NonPrimitive) {
+                console.log('-NonPrimitive')
                 context.approximateLength += 6;
                 return factory.createKeywordTypeNode(SyntaxKind.ObjectKeyword);
             }
+            console.log('-typeToTypeNodeWorker 4')
             if (isThisTypeParameter(type)) {
                 if (context.flags & NodeBuilderFlags.InObjectTypeLiteral) {
                     if (!context.encounteredError && !(context.flags & NodeBuilderFlags.AllowThisInObjectLiteral)) {
@@ -6302,9 +6344,11 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 return symbolToTypeNode(type.aliasSymbol, context, SymbolFlags.Type, typeArgumentNodes);
             }
 
+            console.log('-typeToTypeNodeWorker 5')
             const objectFlags = getObjectFlags(type);
 
             if (objectFlags & ObjectFlags.Reference) {
+                console.log('-Reference')
                 Debug.assert(!!(type.flags & TypeFlags.Object));
                 return (type as TypeReference).node ? visitAndTransformType(type as TypeReference, typeReferenceToTypeNode) : typeReferenceToTypeNode(type as TypeReference);
             }
@@ -6361,17 +6405,21 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     return undefined!; // TODO: GH#18217
                 }
             }
+            console.log('-typeToTypeNodeWorker 6')
             if (objectFlags & (ObjectFlags.Anonymous | ObjectFlags.Mapped)) {
+                console.log('-Anonymous | Mapped')
                 Debug.assert(!!(type.flags & TypeFlags.Object));
                 // The type is an object literal type.
                 return createAnonymousTypeNode(type as ObjectType);
             }
             if (type.flags & TypeFlags.Index) {
+                console.log('-Index')
                 const indexedType = (type as IndexType).type;
                 context.approximateLength += 6;
                 const indexTypeNode = typeToTypeNodeHelper(indexedType, context);
                 return factory.createTypeOperatorNode(SyntaxKind.KeyOfKeyword, indexTypeNode);
             }
+            console.log('-typeToTypeNodeWorker 7')
             if (type.flags & TypeFlags.TemplateLiteral) {
                 const texts = (type as TemplateLiteralType).texts;
                 const types = (type as TemplateLiteralType).types;
@@ -6396,6 +6444,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 context.approximateLength += 2;
                 return factory.createIndexedAccessTypeNode(objectTypeNode, indexTypeNode);
             }
+            console.log('-typeToTypeNodeWorker 8')
             if (type.flags & TypeFlags.Conditional) {
                 return visitAndTransformType(type, type => conditionalTypeToTypeNode(type as ConditionalType));
             }
@@ -6405,6 +6454,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 return noInferSymbol ? symbolToTypeNode(noInferSymbol, context, SymbolFlags.Type, [typeNode]) : typeNode;
             }
 
+            console.log('-typeToTypeNodeWorker 9')
             return Debug.fail("Should be unreachable.");
 
             function conditionalTypeToTypeNode(type: ConditionalType) {
@@ -6542,9 +6592,13 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
 
             function createAnonymousTypeNode(type: ObjectType): TypeNode {
+                console.log('£££ createAnonymousTypeNode')
+                console.log('objectType', type)
                 const typeId = type.id;
                 const symbol = type.symbol;
                 if (symbol) {
+                    console.log('has symbol')
+                    //console.log('symbol.parent', type.symbol.parent)
                     const isInstantiationExpressionType = !!(getObjectFlags(type) & ObjectFlags.InstantiationExpressionType);
                     if (isInstantiationExpressionType) {
                         const instantiationExpressionType = type as InstantiationExpressionType;
@@ -6556,13 +6610,16 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                             }
                         }
                         if (context.visitedTypes?.has(typeId)) {
+                            console.log('call createElidedInformationPlaceholder 1')
                             return createElidedInformationPlaceholder(context);
                         }
+                        console.log('call visitAndTransformType')
                         return visitAndTransformType(type, createTypeNodeFromObjectType);
                     }
                     const isInstanceType = isClassInstanceSide(type) ? SymbolFlags.Type : SymbolFlags.Value;
                     if (isJSConstructor(symbol.valueDeclaration)) {
                         // Instance and static types share the same symbol; only add 'typeof' for the static side.
+                        console.log('isJSConstructor')
                         return symbolToTypeNode(symbol, context, isInstanceType);
                     }
                     // Always use 'typeof T' for type of class, enum, and module objects
@@ -6572,29 +6629,35 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                             && !(symbol.valueDeclaration && isClassLike(symbol.valueDeclaration) && context.flags & NodeBuilderFlags.WriteClassExpressionAsTypeLiteral && (!isClassDeclaration(symbol.valueDeclaration) || isSymbolAccessible(symbol, context.enclosingDeclaration, isInstanceType, /*shouldComputeAliasesToMakeVisible*/ false).accessibility !== SymbolAccessibility.Accessible)) ||
                         symbol.flags & (SymbolFlags.Enum | SymbolFlags.ValueModule) ||
                         shouldWriteTypeOfFunctionSymbol()
-                    ) {
+                    ) { 
+                        console.log('call symbolToTypeNode')
                         return symbolToTypeNode(symbol, context, isInstanceType);
                     }
                     else if (context.visitedTypes?.has(typeId)) {
                         // If type is an anonymous type literal in a type alias declaration, use type alias name
                         const typeAlias = getTypeAliasForTypeLiteral(type);
                         if (typeAlias) {
+                            console.log('call symbolToTypeNode')
                             // The specified symbol flags need to be reinterpreted as type flags
                             return symbolToTypeNode(typeAlias, context, SymbolFlags.Type);
                         }
                         else {
+                            console.log('call createElidedInformationPlaceholder 2')
                             return createElidedInformationPlaceholder(context);
                         }
                     }
                     else {
+                        console.log('call visitAndTransformType  2')
                         return visitAndTransformType(type, createTypeNodeFromObjectType);
                     }
                 }
                 else {
+                    console.log('call createTypeNodeFromObjectType')
                     // Anonymous types without a symbol are never circular.
                     return createTypeNodeFromObjectType(type);
                 }
                 function shouldWriteTypeOfFunctionSymbol() {
+                    console.log('shouldWriteTypeOfFunctionSymbol')
                     const isStaticMethodSymbol = !!(symbol.flags & SymbolFlags.Method) && // typeof static method
                         some(symbol.declarations, declaration => isStatic(declaration));
                     const isNonLocalFunctionSymbol = !!(symbol.flags & SymbolFlags.Function) &&
@@ -6609,6 +6672,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
 
             function visitAndTransformType<T extends Type>(type: T, transform: (type: T) => TypeNode) {
+                console.log('visitAndTransformType')
                 const typeId = type.id;
                 const isConstructorObject = getObjectFlags(type) & ObjectFlags.Anonymous && type.symbol && type.symbol.flags & SymbolFlags.Class;
                 const id = getObjectFlags(type) & ObjectFlags.Reference && (type as TypeReference & T).node ? "N" + getNodeId((type as TypeReference & T).node!) :
@@ -6644,6 +6708,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                         context.truncating = true;
                     }
                     context.approximateLength += cachedResult.addedLength;
+                    console.log('call deepCloneOrReuseNode')
                     return deepCloneOrReuseNode(cachedResult.node);
                 }
 
@@ -6651,6 +6716,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 if (id) {
                     depth = context.symbolDepth!.get(id) || 0;
                     if (depth > 10) {
+                        console.log('call createElidedInformationPlaceholder')
                         return createElidedInformationPlaceholder(context);
                     }
                     context.symbolDepth!.set(id, depth + 1);
@@ -6659,6 +6725,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 const prevTrackedSymbols = context.trackedSymbols;
                 context.trackedSymbols = undefined;
                 const startLength = context.approximateLength;
+                console.log('-perform transform')
                 const result = transform(type);
                 const addedLength = context.approximateLength - startLength;
                 if (!context.reportedDiagnostic && !context.encounteredError) {
@@ -6674,12 +6741,14 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     context.symbolDepth!.set(id, depth!);
                 }
                 context.trackedSymbols = prevTrackedSymbols;
+                console.log('return result')
                 return result;
 
                 function deepCloneOrReuseNode<T extends Node>(node: T): T {
                     if (!nodeIsSynthesized(node) && getParseTreeNode(node) === node) {
                         return node;
                     }
+                    console.log('call setTextRange')
                     return setTextRange(context, factory.cloneNode(visitEachChild(node, deepCloneOrReuseNode, /*context*/ undefined, deepCloneOrReuseNodes, deepCloneOrReuseNode)), node);
                 }
 
@@ -6700,13 +6769,16 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
 
             function createTypeNodeFromObjectType(type: ObjectType): TypeNode {
+                console.log('createTypeNodeFromObjectType')
                 if (isGenericMappedType(type) || (type as MappedType).containsError) {
+                    console.log('isGenericMappedType')
                     return createMappedTypeNodeFromType(type as MappedType);
                 }
-
+                console.log('createTypeNodeFromObjectType 1')
                 const resolved = resolveStructuredTypeMembers(type);
                 if (!resolved.properties.length && !resolved.indexInfos.length) {
                     if (!resolved.callSignatures.length && !resolved.constructSignatures.length) {
+                        console.log('call createTypeLiteralNode 1')
                         context.approximateLength += 2;
                         return setEmitFlags(factory.createTypeLiteralNode(/*members*/ undefined), EmitFlags.SingleLine);
                     }
@@ -6714,16 +6786,19 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     if (resolved.callSignatures.length === 1 && !resolved.constructSignatures.length) {
                         const signature = resolved.callSignatures[0];
                         const signatureNode = signatureToSignatureDeclarationHelper(signature, SyntaxKind.FunctionType, context) as FunctionTypeNode;
+                        console.log('return signatureNode 1')
                         return signatureNode;
                     }
 
                     if (resolved.constructSignatures.length === 1 && !resolved.callSignatures.length) {
                         const signature = resolved.constructSignatures[0];
                         const signatureNode = signatureToSignatureDeclarationHelper(signature, SyntaxKind.ConstructorType, context) as ConstructorTypeNode;
+                        console.log('return signatureNode 2')
                         return signatureNode;
                     }
                 }
 
+                console.log('createTypeNodeFromObjectType 2')
                 const abstractSignatures = filter(resolved.constructSignatures, signature => !!(signature.flags & SignatureFlags.Abstract));
                 if (some(abstractSignatures)) {
                     const types = map(abstractSignatures, s => getOrCreateTypeFromSignature(s));
@@ -6746,28 +6821,42 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     return typeToTypeNodeHelper(getIntersectionType(types), context);
                 }
 
+                console.log('createTypeNodeFromObjectType 3')
                 const savedFlags = context.flags;
                 context.flags |= NodeBuilderFlags.InObjectTypeLiteral;
                 const members = createTypeNodesFromResolvedType(resolved);
                 context.flags = savedFlags;
+                console.log('!!!! add closed or open status here!!')
                 const typeLiteralNode = factory.createTypeLiteralNode(members);
                 context.approximateLength += 2;
                 setEmitFlags(typeLiteralNode, (context.flags & NodeBuilderFlags.MultilineObjectLiterals) ? 0 : EmitFlags.SingleLine);
-                return typeLiteralNode;
+                
+                console.log('return typeLiteralNode')
+                console.log('type', type)
+                console.log('typeLiteralNode', typeLiteralNode)
+
+                //return typeLiteralNode;
+                return (type.modifier === SyntaxKind.ClosedKeyword)
+                    ?  factory.createTypeOperatorNode(type.modifier, typeLiteralNode)
+                    : typeLiteralNode
             }
 
             function typeReferenceToTypeNode(type: TypeReference) {
+                console.log('typeReferenceToTypeNode')
                 let typeArguments: readonly Type[] = getTypeArguments(type);
                 if (type.target === globalArrayType || type.target === globalReadonlyArrayType) {
                     if (context.flags & NodeBuilderFlags.WriteArrayAsGenericType) {
                         const typeArgumentNode = typeToTypeNodeHelper(typeArguments[0], context);
+                        console.log('typeReferenceToTypeNode return 1 call createTypeReferenceNode')
                         return factory.createTypeReferenceNode(type.target === globalArrayType ? "Array" : "ReadonlyArray", [typeArgumentNode]);
                     }
                     const elementType = typeToTypeNodeHelper(typeArguments[0], context);
                     const arrayType = factory.createArrayTypeNode(elementType);
+                    console.log('typeReferenceToTypeNode return 2')
                     return type.target === globalArrayType ? arrayType : factory.createTypeOperatorNode(SyntaxKind.ReadonlyKeyword, arrayType);
                 }
                 else if (type.target.objectFlags & ObjectFlags.Tuple) {
+                    console.log('typeReferenceToTypeNode tuple')
                     typeArguments = sameMap(typeArguments, (t, i) => removeMissingType(t, !!((type.target as TupleType).elementFlags[i] & ElementFlags.Optional)));
                     if (typeArguments.length > 0) {
                         const arity = getTypeReferenceArity(type);
@@ -6794,11 +6883,14 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                                 }
                             }
                             const tupleTypeNode = setEmitFlags(factory.createTupleTypeNode(tupleConstituentNodes), EmitFlags.SingleLine);
+                            console.log('typeReferenceToTypeNode return 3')
+                            console.log('this will return a TypeOperatorNode if readonly is true')
                             return (type.target as TupleType).readonly ? factory.createTypeOperatorNode(SyntaxKind.ReadonlyKeyword, tupleTypeNode) : tupleTypeNode;
                         }
                     }
                     if (context.encounteredError || (context.flags & NodeBuilderFlags.AllowEmptyTuple)) {
                         const tupleTypeNode = setEmitFlags(factory.createTupleTypeNode([]), EmitFlags.SingleLine);
+                        console.log('typeReferenceToTypeNode return 4')
                         return (type.target as TupleType).readonly ? factory.createTypeOperatorNode(SyntaxKind.ReadonlyKeyword, tupleTypeNode) : tupleTypeNode;
                     }
                     context.encounteredError = true;
@@ -6810,6 +6902,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     isClassLike(type.symbol.valueDeclaration) &&
                     !isValueSymbolAccessible(type.symbol, context.enclosingDeclaration)
                 ) {
+                    console.log('typeReferenceToTypeNode return 5 call createAnonymousTypeNode')
                     return createAnonymousTypeNode(type);
                 }
                 else {
@@ -6847,6 +6940,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     context.flags |= NodeBuilderFlags.ForbidIndexedAccessSymbolReferences;
                     const finalRef = symbolToTypeNode(type.symbol, context, SymbolFlags.Type, typeArgumentNodes);
                     context.flags = flags;
+                    console.log('typeReferenceToTypeNode return 6 call createAnonymousTypeNode')
                     return !resultType ? finalRef : appendReferenceToType(resultType, finalRef as TypeReferenceNode);
                 }
             }
@@ -20326,20 +20420,37 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         errorOutputContainer: { errors?: Diagnostic[]; skipLogging?: boolean; } | undefined,
     ): boolean {
         console.log('checkTypeRelatedToAndOptionallyElaborate', 'hasErrorNode', !!errorNode);
+        const related = isTypeRelatedTo(source, target, relation)
         console.log(
             'is the type related?',
-            isTypeRelatedTo(source, target, relation),
+            related,
             source.flags,
             // @ts-expect-error
-            showFlags(source.flags, TypeFlags),
+            bitFlags(source.flags, TypeFlags),
             target.flags,
             // @ts-expect-error
-            showFlags(target.flags, TypeFlags),
+            bitFlags(target.flags, TypeFlags),
         )
-        if (isTypeRelatedTo(source, target, relation)) return true;
-        if (!errorNode || !elaborateError(expr, source, target, relation, headMessage, containingMessageChain, errorOutputContainer)) {
+        if (related) return true;
+        console.log('not related to', '| has error node', !!errorNode)
+        console.log('relation', relation)
+        console.log('headMessage', headMessage)
+        console.log('containingMessageChain', containingMessageChain)
+        console.log('errorOutputContainer', errorOutputContainer)
+        if (!errorNode) {
+            console.log('checkTypeRelatedTo because there is no error node')
             return checkTypeRelatedTo(source, target, relation, errorNode, headMessage, containingMessageChain, errorOutputContainer);
+        } else {
+            const elaborateErrorResult = elaborateError(expr, source, target, relation, headMessage, containingMessageChain, errorOutputContainer)
+            console.log('elaborateErrorResult', elaborateErrorResult)
+            if (!elaborateErrorResult) {
+                console.log('checkTypeRelatedTo because elaborateErrorResult is false')
+                return checkTypeRelatedTo(source, target, relation, errorNode, headMessage, containingMessageChain, errorOutputContainer);
+            }
         }
+        // if (!errorNode || !elaborateError(expr, source, target, relation, headMessage, containingMessageChain, errorOutputContainer)) {
+        //     return checkTypeRelatedTo(source, target, relation, errorNode, headMessage, containingMessageChain, errorOutputContainer);
+        // }
         return false;
     }
 
@@ -21272,30 +21383,30 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             target = (target as FreshableType).regularType;
         }
         if (source === target) {
-            console.log('equal')
+            console.log('*equal')
             return true;
         }
         if (relation !== identityRelation) {
             if (relation === comparableRelation && !(target.flags & TypeFlags.Never) && isSimpleTypeRelatedTo(target, source, relation) || isSimpleTypeRelatedTo(source, target, relation)) {
-                console.log('something to do with relation')
+                console.log('*something to do with relation')
                 return true;
             }
         }
         else if (!((source.flags | target.flags) & (TypeFlags.UnionOrIntersection | TypeFlags.IndexedAccess | TypeFlags.Conditional | TypeFlags.Substitution))) {
             // We have excluded types that may simplify to other forms, so types must have identical flags
             if (source.flags !== target.flags) return false;
-            if (source.flags & TypeFlags.Singleton) console.log('source is singleton')  
+            if (source.flags & TypeFlags.Singleton) console.log('*source is singleton')  
             if (source.flags & TypeFlags.Singleton) return true;
         }
         if (source.flags & TypeFlags.Object && target.flags & TypeFlags.Object) {
             const related = relation.get(getRelationKey(source, target, IntersectionState.None, relation, /*ignoreConstraints*/ false));
             if (related !== undefined) {
-                console.log('related succeeded')
+                console.log('*related succeeded')
                 return !!(related & RelationComparisonResult.Succeeded);
             }
         }
         if (source.flags & TypeFlags.StructuredOrInstantiable || target.flags & TypeFlags.StructuredOrInstantiable) {
-            console.log('checkTypeRelatedTo')
+            console.log('*checkTypeRelatedTo')
             return checkTypeRelatedTo(source, target, relation, /*errorNode*/ undefined);
         }
         return false;
@@ -21482,6 +21593,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         }
 
         function reportIncompatibleStack() {
+            console.log('reportIncompatibleStack')
             const stack = incompatibleStack || [];
             incompatibleStack = undefined;
             const info = lastSkippedInfo;
@@ -21586,6 +21698,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
             if (info) {
                 // Actually do the last relation error
+                console.log('reportRelationError A')
                 reportRelationError(/*message*/ undefined, ...info);
             }
         }
@@ -21594,9 +21707,9 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             console.log('reportError')
             console.log('message', message)
             console.log('args', args)
-            console.log('errorNode', 
-                // @ts-expect-error
-                errorNode?.kind && SyntaxKind[errorNode.kind], errorNode)
+            // console.log('errorNode', 
+            //     // @ts-expect-error
+            //     errorNode?.kind && SyntaxKind[errorNode.kind], errorNode)
             Debug.assert(!!errorNode);
             if (incompatibleStack) reportIncompatibleStack();
             if (message.elidedInCompatabilityPyramid) return;
@@ -21766,7 +21879,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
          * * Ternary.False if they are not related.
          */
         function isRelatedTo(originalSource: Type, originalTarget: Type, recursionFlags: RecursionFlags = RecursionFlags.Both, reportErrors = false, headMessage?: DiagnosticMessage, intersectionState = IntersectionState.None): Ternary {
-            console.log('isRelatedTo')
+            console.log('isRelatedTo | reporting errors?', !!reportErrors)
             if (originalSource === originalTarget) return Ternary.True;
 
             // Before normalization: if `source` is type an object type, and `target` is primitive,
@@ -21779,6 +21892,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     return Ternary.True;
                 }
                 if (reportErrors) {
+                    console.log('call reportErrorResults 1')
                     reportErrorResults(originalSource, originalTarget, originalSource, originalTarget, headMessage);
                 }
                 return Ternary.False;
@@ -21829,20 +21943,20 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
 
             if (source.flags & TypeFlags.StructuredOrInstantiable || target.flags & TypeFlags.StructuredOrInstantiable) {
                
-                function decToBin(dec: number) {
-                    return (dec >>> 0).toString(2);
-                }
-                function bitFlags(flags: number, sep = ',') {
-                    const matches: number[] = []
-                    const binary = decToBin(flags)
-                    let pos = binary.length - 1
-                    for (const v of binary) {
-                        if (v === "1") matches.push(pos)
-                        pos--
-                    }
-                    if (matches.length === 0) return "none"
-                    return matches.reverse().join(sep)
-                }
+                // function decToBin(dec: number) {
+                //     return (dec >>> 0).toString(2);
+                // }
+                // function bitFlags(flags: number, sep = ',') {
+                //     const matches: number[] = []
+                //     const binary = decToBin(flags)
+                //     let pos = binary.length - 1
+                //     for (const v of binary) {
+                //         if (v === "1") matches.push(pos)
+                //         pos--
+                //     }
+                //     if (matches.length === 0) return "none"
+                //     return matches.reverse().join(sep)
+                // }
                 console.log('isObjectLiteralType(source)', isObjectLiteralType(source))
                 console.log('getObjectFlags(source)', getObjectFlags(source), decToBin(getObjectFlags(source)))
                 //console.log('ObjectFlags.FreshLiteral', ObjectFlags.FreshLiteral, decToBin(ObjectFlags.FreshLiteral))
@@ -21851,31 +21965,36 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                     = !(intersectionState & IntersectionState.Target)
                 
                 //console.log('source', source)
-                console.log('target', target)
-                
-                console.log('source.flags TypeFlags', bitFlags(source.flags)) // TypeFlags
+                //console.log('target', target)
+                // @ts-expect-error
+                console.log('source.flags TypeFlags', bitFlags(source.flags, TypeFlags)) // TypeFlags
                 // eslint-disable-next-line local/no-in-operator
                 if ('symbol' in source && typeof source.symbol === 'object' && 'flags' in source.symbol) {
-                    console.log('source.symbol.flags SymbolFlags', bitFlags(source.symbol.flags)) // SymbolFlags
+                    // @ts-expect-error
+                    console.log('source.symbol.flags SymbolFlags', bitFlags(source.symbol.flags, SymbolFlags)) // SymbolFlags
                 }
                 // eslint-disable-next-line local/no-in-operator
                 if ('objectFlags' in source) {
-                    console.log('source.objectFlag ObjectFlags', bitFlags((source as ObjectType).objectFlags))
+                    // @ts-expect-error
+                    console.log('source.objectFlag ObjectFlags', bitFlags((source as ObjectType).objectFlags, ObjectFlags))
                 }
 
                 //console.log('target.flags', decToBin(target.flags)) // TypeFlags
-                console.log('target.flags TypeFlags', bitFlags(target.flags)) // TypeFlags
+                    // @ts-expect-error
+                console.log('target.flags TypeFlags', bitFlags(target.flags, TypeFlags)) // TypeFlags
                 const targetIsObjectType = Boolean(target.flags & TypeFlags.Object)
                 //console.log('target.symbol.flags', decToBin(target.symbol.flags)) // SymbolFlags
                 // eslint-disable-next-line local/no-in-operator
                 if ('symbol' in target && typeof target.symbol === 'object' && 'flags' in target.symbol) {
-                    console.log('target.symbol.flags SymbolFlags', bitFlags(target.symbol.flags)) // SymbolFlags
+                    // @ts-expect-error
+                    console.log('target.symbol.flags SymbolFlags', bitFlags(target.symbol.flags, SymbolFlags)) // SymbolFlags
                 }
                 // our object type seems to have SymbolFlags.TypeLiteral
                 //console.log('target.objectFlags', decToBin((target as ObjectType).objectFlags))
                 // eslint-disable-next-line local/no-in-operator
                 if ('objectFlags' in target) {
-                    console.log('target.objectFlag ObjectFlags', bitFlags((target as ObjectType).objectFlags))
+                    // @ts-expect-error
+                    console.log('target.objectFlag ObjectFlags', bitFlags((target as ObjectType).objectFlags, ObjectFlags))
                 }
                 // we seem to get ObjectFlags.Anonymous
                 
@@ -21910,9 +22029,9 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
 
                     if (isAssignmentFromNonClosedObject && isAssignmentToClosedObject) {
                         console.log('!!!Assignment to closed object from non closed object!')
-                        console.log('!!set errorNode', target.symbol.valueDeclaration)
+                        console.log('!!!set errorNode', target.symbol.valueDeclaration)
                         //errorNode = target.symbol.declarations //source.symbol.valueDeclaration // location for the error squiggly
-                        reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
+                        if (reportErrors) reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
                         return Ternary.False;
                     }
                 }
@@ -21955,12 +22074,14 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
 
             if (reportErrors) {
+                console.log('call reportErrorResults 2')
                 reportErrorResults(originalSource, originalTarget, source, target, headMessage);
             }
             return Ternary.False;
         }
 
         function reportErrorResults(originalSource: Type, originalTarget: Type, source: Type, target: Type, headMessage: DiagnosticMessage | undefined) {
+            console.log('reportErrorResults')
             const sourceHasBase = !!getSingleBaseForNonAugmentingSubtype(originalSource);
             const targetHasBase = !!getSingleBaseForNonAugmentingSubtype(originalTarget);
             source = (originalSource.aliasSymbol || sourceHasBase) ? originalSource : source;
@@ -22003,6 +22124,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 // we call `reportRelationError` here and then undo its effects to figure out what would be the diagnostic
                 // if we hadn't supress it, and save that as a canonical diagnostic for deduplication purposes.
                 const savedErrorState = captureErrorCalculationState();
+                console.log('reportRelationError B')
                 reportRelationError(headMessage, source, target);
                 let canonical;
                 if (errorInfo && errorInfo !== savedErrorState.errorInfo) {
@@ -22016,6 +22138,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 lastSkippedInfo = [source, target];
                 return;
             }
+            console.log('reportRelationError C')
             reportRelationError(headMessage, source, target);
             if (source.flags & TypeFlags.TypeParameter && source.symbol?.declarations?.[0] && !getConstraintOfType(source as TypeVariable)) {
                 const syntheticParam = cloneTypeParameter(source as TypeParameter);

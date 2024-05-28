@@ -2257,6 +2257,7 @@ function getErrorSpanForArrowFunction(sourceFile: SourceFile, node: ArrowFunctio
 
 /** @internal */
 export function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpan {
+    console.log('getErrorSpanForNode')
     let errorNode: Node | undefined = node;
     switch (node.kind) {
         case SyntaxKind.SourceFile: {

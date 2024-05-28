@@ -221,6 +221,8 @@ function tryGetName(node: FunctionLikeDeclaration) {
 }
 
 function typeToTypeNode(checker: TypeChecker, type: Type, enclosingDeclaration: Node) {
+    // @ts-expect-error
+    console.log('typeToTypeNode 1')
     return checker.typeToTypeNode(checker.getWidenedType(type), enclosingDeclaration, NodeBuilderFlags.NoTruncation)
         ?? factory.createKeywordTypeNode(SyntaxKind.UnknownKeyword);
 }

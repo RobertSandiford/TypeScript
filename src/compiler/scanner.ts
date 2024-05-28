@@ -34,6 +34,7 @@ import {
     TextRange,
     TokenFlags,
 } from "./_namespaces/ts.js";
+import { showStack } from "./devHelpers.js";
 
 export type ErrorCallback = (message: DiagnosticMessage, length: number, arg0?: any) => void;
 
@@ -213,8 +214,8 @@ export const textToKeywordObj: MapLike<KeywordSyntaxKind> = {
     async: SyntaxKind.AsyncKeyword,
     await: SyntaxKind.AwaitKeyword,
     of: SyntaxKind.OfKeyword,
-    xx__closed: SyntaxKind.ClosedKeyword,
-    xx__open: SyntaxKind.OpenKeyword,
+    closed: SyntaxKind.ClosedKeyword,
+    open: SyntaxKind.OpenKeyword,
 };
 
 const textToKeyword = new Map(Object.entries(textToKeywordObj));
@@ -410,6 +411,14 @@ const tokenStrings = makeReverseMap(textToToken);
 export function tokenToString(t: PunctuationOrKeywordSyntaxKind): string;
 export function tokenToString(t: SyntaxKind): string | undefined;
 export function tokenToString(t: SyntaxKind): string | undefined {
+    console.log('tokenToString', t)
+    //console.log('tokenStrings 1', tokenStrings.slice(0, 40))
+    //console.log('tokenStrings 2', tokenStrings.slice(40, 80))
+    //console.log('tokenStrings 3', tokenStrings.slice(80, 120))
+    //console.log('tokenStrings 4', tokenStrings.slice(120, 160))
+    //console.log('tokenStrings 5', tokenStrings.slice(160, 200))
+    console.log('this token string "' + tokenStrings[t] + '"')
+    if (tokenStrings[t] === "readonly") showStack('tokenToString (readonly)')
     return tokenStrings[t];
 }
 
