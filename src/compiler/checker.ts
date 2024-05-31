@@ -5312,7 +5312,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         seenIntrinsicNames.add(key);
     }
 
-    function createObjectType(objectFlags: ObjectFlags, symbol?: Symbol): ObjectType {
+    function createObjectType(objectFlags: ObjectFlags, symbol?: Symbol, modifier?: SyntaxKind.ClosedKeyword | SyntaxKind.OpenKeyword): ObjectType {
         const type = createTypeWithSymbol(TypeFlags.Object, symbol!) as ObjectType;
         type.objectFlags = objectFlags;
         type.members = undefined;
@@ -5320,6 +5320,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         type.callSignatures = undefined;
         type.constructSignatures = undefined;
         type.indexInfos = undefined;
+        type.modifier = modifier;
         return type;
     }
 
@@ -6747,7 +6748,7 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 const typeLiteralNode = factory.createTypeLiteralNode(members);
                 context.approximateLength += 2;
                 setEmitFlags(typeLiteralNode, (context.flags & NodeBuilderFlags.MultilineObjectLiterals) ? 0 : EmitFlags.SingleLine);
-                return typeLiteralNode;
+                return (type.modifier === SyntaxKind.ClosedKeyword) ? factory.createTypeOperatorNode(type.modifier, typeLiteralNode) : typeLiteralNode
             }
 
             function typeReferenceToTypeNode(type: TypeReference) {
@@ -19027,6 +19028,13 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
         }
     }
 
+    function getTypeOperatorNodeObjectOperator(node: TypeOperatorNode): SyntaxKind.ClosedKeyword | SyntaxKind.OpenKeyword | undefined {
+        if (node.operator === SyntaxKind.ClosedKeyword || node.operator === SyntaxKind.OpenKeyword ) {
+            return node.operator
+        }
+        return undefined
+    }
+
     function getTypeFromTypeLiteralOrFunctionOrConstructorTypeNode(node: TypeLiteralNode | FunctionOrConstructorTypeNode | JSDocTypeLiteral | JSDocFunctionType | JSDocSignature): Type {
         const links = getNodeLinks(node);
         if (!links.resolvedType) {
@@ -19036,7 +19044,10 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                 links.resolvedType = emptyTypeLiteralType;
             }
             else {
-                let type = createObjectType(ObjectFlags.Anonymous, node.symbol);
+                const modifier = (node.parent.kind === SyntaxKind.TypeOperator) ?
+                    getTypeOperatorNodeObjectOperator(node.parent as TypeOperatorNode) :
+                    undefined
+                let type = createObjectType(ObjectFlags.Anonymous, node.symbol, modifier);
                 type.aliasSymbol = aliasSymbol;
                 type.aliasTypeArguments = getTypeArgumentsForAliasSymbol(aliasSymbol);
                 if (isJSDocTypeLiteral(node) && node.isArrayType) {
@@ -21746,10 +21757,23 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             if (source.flags & TypeFlags.StructuredOrInstantiable || target.flags & TypeFlags.StructuredOrInstantiable) {
                 const isPerformingExcessPropertyChecks = !(intersectionState & IntersectionState.Target) && (isObjectLiteralType(source) && getObjectFlags(source) & ObjectFlags.FreshLiteral);
                 if (isPerformingExcessPropertyChecks) {
+                    // excess property checks will deal with assigning fresh literals to closed object types
+                    // however in the future we want this to show different errors between EPCs and closed object violation
+                    // so this block might need to adjust the message depending on the target type
                     if (hasExcessProperties(source as FreshObjectLiteralType, target, reportErrors)) {
                         if (reportErrors) {
                             reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
                         }
+                        return Ternary.False;
+                    }
+                } else {
+                    const isAssignmentFromNonClosedObject
+                        = (source.flags & TypeFlags.Object) && (source as ObjectType).modifier !== SyntaxKind.ClosedKeyword
+                    const isAssignmentToClosedObject
+                        = (target.flags & TypeFlags.Object) && (target as ObjectType).modifier === SyntaxKind.ClosedKeyword
+
+                    if (isAssignmentFromNonClosedObject && isAssignmentToClosedObject) {
+                        if (reportErrors) reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
                         return Ternary.False;
                     }
                 }

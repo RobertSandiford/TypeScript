@@ -6432,6 +6432,7 @@ export type ObjectFlagsType = NullableType | ObjectType | UnionType | Intersecti
 // dprint-ignore
 export interface ObjectType extends Type {
     objectFlags: ObjectFlags;
+    modifier?: SyntaxKind.ClosedKeyword | SyntaxKind.OpenKeyword | undefined
     /** @internal */ members?: SymbolTable;             // Properties by name
     /** @internal */ properties?: Symbol[];             // Properties
     /** @internal */ callSignatures?: readonly Signature[];      // Call signatures of type
