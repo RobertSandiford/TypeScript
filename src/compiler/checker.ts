@@ -21767,14 +21767,20 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
                         return Ternary.False;
                     }
                 } else {
-                    const isAssignmentFromNonClosedObject
-                        = (source.flags & TypeFlags.Object) && (source as ObjectType).modifier !== SyntaxKind.ClosedKeyword
-                    const isAssignmentToClosedObject
-                        = (target.flags & TypeFlags.Object) && (target as ObjectType).modifier === SyntaxKind.ClosedKeyword
-
-                    if (isAssignmentFromNonClosedObject && isAssignmentToClosedObject) {
-                        if (reportErrors) reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
-                        return Ternary.False;
+                    const sourceIsObject = (source.flags & TypeFlags.Object)
+                    const targetIsObject = (target.flags & TypeFlags.Object)
+                    const asignmentBetweenObjects = sourceIsObject && targetIsObject
+                    if (asignmentBetweenObjects) {
+                        // open to closed
+                        if ((source as ObjectType).modifier !== SyntaxKind.ClosedKeyword && (target as ObjectType).modifier === SyntaxKind.ClosedKeyword) {
+                            if (reportErrors) reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
+                            return Ternary.False;
+                        }
+                        // closed to open
+                        if ((source as ObjectType).modifier === SyntaxKind.ClosedKeyword && (target as ObjectType).modifier !== SyntaxKind.ClosedKeyword) {
+                            if (reportErrors) reportRelationError(headMessage, source, originalTarget.aliasSymbol ? originalTarget : target);
+                            return Ternary.False;
+                        }
                     }
                 }
 
@@ -50747,13 +50753,13 @@ export function createTypeChecker(host: TypeCheckerHost): TypeChecker {
             }
         }
         else if (node.operator === SyntaxKind.ClosedKeyword) {
-            if (node.type.kind !== SyntaxKind.TypeLiteral) {
-                return grammarErrorOnFirstToken(node, Diagnostics.closed_type_modifier_is_only_permitted_on_object_literal_types);
+            if (node.type.kind !== SyntaxKind.TypeLiteral && node.type.kind !== SyntaxKind.MappedType) {
+                return grammarErrorOnFirstToken(node, Diagnostics.closed_type_modifier_is_only_permitted_on_object_literal_types_or_mapped_types);
             }
         }
         else if (node.operator === SyntaxKind.OpenKeyword) {
             if (node.type.kind !== SyntaxKind.TypeLiteral) {
-                return grammarErrorOnFirstToken(node, Diagnostics.open_type_modifier_is_only_permitted_on_object_literal_types);
+                return grammarErrorOnFirstToken(node, Diagnostics.open_type_modifier_is_only_permitted_on_object_literal_types_or_mapped_types);
             }
         }
     }

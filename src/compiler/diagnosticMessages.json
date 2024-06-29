@@ -1797,11 +1797,11 @@
         "category": "Error",
         "code": 1535
     },
-    "'closed' type modifier is only permitted on object literal types.": {
+    "'closed' type modifier is only permitted on object literal types or mapped types.": {
         "category": "Error",
         "code": 1536
     },
-    "'open' type modifier is only permitted on object literal types.": {
+    "'open' type modifier is only permitted on object literal types or mapped types.": {
         "category": "Error",
         "code": 1537
     },
