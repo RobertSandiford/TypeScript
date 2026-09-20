@@ -1,0 +1,83 @@
+//// [tests/cases/compiler/jsxChildrenErrorLocationAfterEmptyExpression.tsx] ////
+
+=== jsxChildrenErrorLocationAfterEmptyExpression.tsx ===
+// TS 5.0.2 to 7.0.2 has a bug where empty jsx expressions are not indexed
+// correctly when positioning diagnostics
+
+type Child = string | number | JSX.Element | undefined;
+>Child : Symbol(Child, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 0, 0))
+>JSX : Symbol(JSX, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 3, 55))
+>Element : Symbol(JSX.Element, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 4, 23))
+
+declare namespace JSX {
+>JSX : Symbol(JSX, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 3, 55))
+
+    interface Element { tag: string }
+>Element : Symbol(Element, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 4, 23))
+>tag : Symbol(Element.tag, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 5, 23))
+
+    interface ElementChildrenAttribute { children: {} }
+>ElementChildrenAttribute : Symbol(ElementChildrenAttribute, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 5, 37))
+>children : Symbol(ElementChildrenAttribute.children, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 6, 40))
+
+    interface IntrinsicElements {
+>IntrinsicElements : Symbol(IntrinsicElements, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 6, 55))
+
+        div: { children?: Child | Child[] };
+>div : Symbol(IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+>children : Symbol(children, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 8, 14))
+>Child : Symbol(Child, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 0, 0))
+>Child : Symbol(Child, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 0, 0))
+
+        br: {};
+>br : Symbol(IntrinsicElements.br, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 8, 44))
+    }
+}
+
+declare const bad: { notAJsxNode: true };
+>bad : Symbol(bad, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 13, 13))
+>notAJsxNode : Symbol(notAJsxNode, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 13, 20))
+
+// Check the error lands on {bad} not the empty expression.
+const afterOne = <div>
+>afterOne : Symbol(afterOne, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 16, 5))
+>div : Symbol(JSX.IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+
+    {/* ts 5.0.2 to 7.0.2 show the diag here */}
+    {bad}
+>bad : Symbol(bad, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 13, 13))
+
+    <br />
+>br : Symbol(JSX.IntrinsicElements.br, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 8, 44))
+
+</div>;
+>div : Symbol(JSX.IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+
+const afterSeveral = <div>
+>afterSeveral : Symbol(afterSeveral, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 22, 5))
+>div : Symbol(JSX.IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+
+    {/* ts 5.0.2 to 7.0.2 show the 1st diag here */}
+    {/* ts 5.0.2 to 7.0.2 show the 2nd diag here */}
+    {bad}
+>bad : Symbol(bad, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 13, 13))
+
+    {/* comment */}
+    {bad}
+>bad : Symbol(bad, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 13, 13))
+
+</div>;
+>div : Symbol(JSX.IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+
+// this was already correct
+const single = <div>
+>single : Symbol(single, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 31, 5))
+>div : Symbol(JSX.IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+
+    {/* comment */}
+    {bad}
+>bad : Symbol(bad, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 13, 13))
+
+</div>;
+>div : Symbol(JSX.IntrinsicElements.div, Decl(jsxChildrenErrorLocationAfterEmptyExpression.tsx, 7, 33))
+

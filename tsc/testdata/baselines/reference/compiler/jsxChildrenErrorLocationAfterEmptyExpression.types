@@ -1,0 +1,79 @@
+//// [tests/cases/compiler/jsxChildrenErrorLocationAfterEmptyExpression.tsx] ////
+
+=== jsxChildrenErrorLocationAfterEmptyExpression.tsx ===
+// TS 5.0.2 to 7.0.2 has a bug where empty jsx expressions are not indexed
+// correctly when positioning diagnostics
+
+type Child = string | number | JSX.Element | undefined;
+>Child : Child
+>JSX : any
+
+declare namespace JSX {
+    interface Element { tag: string }
+>tag : string
+
+    interface ElementChildrenAttribute { children: {} }
+>children : {}
+
+    interface IntrinsicElements {
+        div: { children?: Child | Child[] };
+>div : { children?: Child | Child[]; }
+>children : Child[] | Child
+
+        br: {};
+>br : {}
+    }
+}
+
+declare const bad: { notAJsxNode: true };
+>bad : { notAJsxNode: true; }
+>notAJsxNode : true
+>true : true
+
+// Check the error lands on {bad} not the empty expression.
+const afterOne = <div>
+>afterOne : JSX.Element
+><div>    {/* ts 5.0.2 to 7.0.2 show the diag here */}    {bad}    <br /></div> : JSX.Element
+>div : any
+
+    {/* ts 5.0.2 to 7.0.2 show the diag here */}
+    {bad}
+>bad : { notAJsxNode: true; }
+
+    <br />
+><br /> : JSX.Element
+>br : any
+
+</div>;
+>div : any
+
+const afterSeveral = <div>
+>afterSeveral : JSX.Element
+><div>    {/* ts 5.0.2 to 7.0.2 show the 1st diag here */}    {/* ts 5.0.2 to 7.0.2 show the 2nd diag here */}    {bad}    {/* comment */}    {bad}</div> : JSX.Element
+>div : any
+
+    {/* ts 5.0.2 to 7.0.2 show the 1st diag here */}
+    {/* ts 5.0.2 to 7.0.2 show the 2nd diag here */}
+    {bad}
+>bad : { notAJsxNode: true; }
+
+    {/* comment */}
+    {bad}
+>bad : { notAJsxNode: true; }
+
+</div>;
+>div : any
+
+// this was already correct
+const single = <div>
+>single : JSX.Element
+><div>    {/* comment */}    {bad}</div> : JSX.Element
+>div : any
+
+    {/* comment */}
+    {bad}
+>bad : { notAJsxNode: true; }
+
+</div>;
+>div : any
+

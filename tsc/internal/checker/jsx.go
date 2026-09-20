@@ -393,6 +393,10 @@ func (c *Checker) generateJsxChildren(node *ast.Node, getInvalidTextDiagnostic f
 func (c *Checker) getElaborationElementForJsxChild(child *ast.Node, nameType *Type, getInvalidTextDiagnostic func() (*diagnostics.Message, []any)) JsxElaborationElement {
 	switch child.Kind {
 	case ast.KindJsxExpression:
+		if child.Expression() == nil {
+			// Don't treat empty jsx expressions as real children, matching checkJsxChildren
+			return JsxElaborationElement{}
+		}
 		// child is of the type of the expression
 		return JsxElaborationElement{errorNode: child, innerExpression: child.Expression(), nameType: nameType}
 	case ast.KindJsxText:
